@@ -15,7 +15,7 @@ class JwtToken
             'user_id' => $user_id,
             'email'   => $email,
             'iat'     => time(), // Issued at
-            'exp'     => time() + (60 * 60),
+            'exp'     => time() + (60 * 60 *24),
             'iss'     => 'user',
 
         ];

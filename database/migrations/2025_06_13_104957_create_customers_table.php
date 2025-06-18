@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('city')->nullable();
             $table->enum('customer_type', ['regular', 'wholesale', 'retail', 'premium'])->default('regular');
             $table->boolean('status')->default(true);
-            
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
         });
     }
 

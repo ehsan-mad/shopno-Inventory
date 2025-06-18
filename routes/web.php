@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\TokenVerify;
 use Illuminate\Support\Facades\Route;
@@ -46,3 +48,18 @@ Route::get('/productList', [ProductController::class, 'productList'])->middlewar
 Route::post('/productById', [ProductController::class, 'productShow'])->middleware([TokenVerify::class]);
 Route::post('/productUpdate', [ProductController::class, 'productUpdate'])->middleware([TokenVerify::class]);
 Route::post('/productDelete', [ProductController::class, 'productDelete'])->middleware([TokenVerify::class]);
+Route::post('/productSearch', [ProductController::class, 'productOptions'])->middleware([TokenVerify::class]);
+
+// sale routes
+Route::post('/saleCreate', [SaleController::class, 'saleCreate'])->middleware([TokenVerify::class]);
+Route::get('/salesList', [SaleController::class, 'salesList'])->middleware([TokenVerify::class]);
+Route::post('/saleById', [SaleController::class, 'saleShow'])->middleware([TokenVerify::class]);
+Route::post('/saleUpdate', [SaleController::class, 'saleUpdate'])->middleware([TokenVerify::class]);
+Route::post('/saleDelete', [SaleController::class, 'saleDelete'])->middleware([TokenVerify::class]);
+Route::post('/saleCancel', [SaleController::class, 'cancelSale'])->middleware([TokenVerify::class]);
+Route::post('saleSummary', [SaleController::class, 'salesSummary'])->middleware([TokenVerify::class]);
+
+Route::prefix('invoices')->group(function () {
+    Route::post('/download', [InvoiceController::class, 'downloadInvoice'])->middleware([TokenVerify::class]);
+    Route::post('/preview', [InvoiceController::class, 'previewInvoice'])->middleware([TokenVerify::class]);
+});

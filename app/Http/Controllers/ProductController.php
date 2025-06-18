@@ -33,6 +33,7 @@ class ProductController extends Controller
             'stock_quantity' => 'required|integer|min:0',
             'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif',
             'status'         => 'boolean',
+
         ]);
 
         if ($validator->fails()) {
@@ -57,6 +58,7 @@ class ProductController extends Controller
 
             // Create product
             $product = Product::create([
+                'user_id'        => $userId,
                 'name'           => $request->name,
                 'description'    => $request->description,
                 'category_id'    => $request->category_id,
@@ -112,10 +114,10 @@ class ProductController extends Controller
             $userId = $request->header('user_id');
 
             $products = Product::where('user_id', $userId)->select(
-                'id', 'name',  'category_id', 'price',
-                'selling_price', 'stock_quantity','image', 'status', 'created_at'
+                'id', 'name', 'category_id', 'price',
+                'selling_price', 'stock_quantity', 'image', 'status', 'created_at'
             )
-                ->orderBy('id', 'desc')
+                ->orderBy('id', 'asc')
                 ->paginate($request->per_page ?? 15);
 
             return response()->json([
@@ -143,6 +145,8 @@ class ProductController extends Controller
      */
     public function productUpdate(Request $request)
     {
+        $userId = $request->header('user_id');
+
         $product = Product::find($request->id);
 
         if (! $product) {
@@ -153,14 +157,16 @@ class ProductController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+
             'name'           => 'nullable|string|max:255',
             'description'    => 'nullable|string|max:1000',
             'category_id'    => 'nullable|exists:categories,id',
-            'price' => 'nullable|numeric|min:0',
+            'price'          => 'nullable|numeric|min:0',
             'selling_price'  => 'nullable|numeric|min:0',
-           
-            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+
+            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif',
             'status'         => 'boolean',
+            'stock_quantity' => 'nullable|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -171,7 +177,7 @@ class ProductController extends Controller
             ], 422);
         }
         try {
-            
+            DB::beginTransaction();
             // Handle image upload
             if ($request->hasFile('image')) {
                 // Delete old image
@@ -179,25 +185,40 @@ class ProductController extends Controller
                     Storage::disk('public')->delete($product->image);
                 }
 
-                $image               = $request->file('image');
-                $imageName           = 'product_' . $request->header('user_id') . '_' . time() . '.' . $image->getClientOriginalExtension();
-                $updateData = $image->storeAs('uploads/products', $imageName, 'public');
+                if ($request->hasFile('image')) {
+                $image     = $request->file('image');
+                $imageName = 'product_' . $userId . '_' . time() . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('uploads/products', $imageName, 'public');
+            }
             }
 
-        
             // Update product data
             $updateData = [
-                'name'           => $request->name ?? $product->name,
-                'description'    => $request->description ?? $product->description,
-                'category_id'    => $request->category_id ?? $product->category_id,
-                'price' => $request->purchase_price ?? $product->purchase_price,
-                'selling_price'  => $request->selling_price ?? $product->selling_price,
-                'status'         => $request->status ?? $product->status,
+                'name'          => $request->name ?? $product->name,
+                'description'   => $request->description ?? $product->description,
+                'category_id'   => $request->category_id ?? $product->category_id,
+                'price'         => $request->purchase_price ?? $product->price,
+                'selling_price' => $request->selling_price ?? $product->selling_price,
+                'status'        => $request->status ?? $product->status,
+                'user_id'       => $userId,
+                'stock_quantity' => $request->stock_quantity ?? $product->stock_quantity,
+                'image'         => isset($imagePath) ? $imagePath : $product->image,
             ];
 
             $product->update($updateData);
+            if ($request->stock_quantity > 0) {
+                StockMovement::create([
+                    'product_id'     => $product->id,
+                    'type'           => 'in',
+                    'quantity'       => $request->stock_quantity ?? $product->stock_quantity,
+                    'previous_stock' => 0,
+                    'current_stock'  => $request->stock_quantity,
+                    'user_id'        => $userId,
+                ]);
+            }
 
-        
+            DB::commit();
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Product updated successfully.',
@@ -205,11 +226,19 @@ class ProductController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+            // $imagePath = isset($imagePath) ? $imagePath : $product->image;
+            // // Delete uploaded image if product creation fails
+            // if ($imagePath) {
+            //     Storage::disk('public')->delete($imagePath);
+            // }
+
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Failed to update product.',
+                'message' => 'Failed to create product.',
                 'error'   => $e->getMessage(),
             ], 500);
+           
         }
     }
 
@@ -228,13 +257,8 @@ class ProductController extends Controller
         }
 
         try {
-            // Check if product has sales records
-            if ($product->saleItems()->count() > 0) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'Cannot delete product with existing sales records. Consider deactivating instead.',
-                ], 400);
-            }
+            DB::beginTransaction();
+            DB::table('stock_movements')->where('product_id', $product->id)->delete();
 
             // Delete image if exists
             if ($product->image) {
@@ -242,6 +266,7 @@ class ProductController extends Controller
             }
 
             $product->delete();
+            DB::commit();
 
             return response()->json([
                 'status'  => 'success',
@@ -249,6 +274,9 @@ class ProductController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+            // Handle any errors during deletion
+
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Failed to delete product.',
@@ -262,14 +290,9 @@ class ProductController extends Controller
      */
     public function productShow(Request $request)
     {
-        $product = Product::with([
-            'category:id,name',
-            'stockMovements' => function ($query) {
-                $query->with('user:id,name')
-                    ->orderBy('created_at', 'desc')
-                    ->limit(20);
-            },
-        ])->find($request->id);
+
+        $product =  Product::find($request->id);
+
 
         if (! $product) {
             return response()->json([
@@ -279,26 +302,25 @@ class ProductController extends Controller
         }
 
         // Calculate product statistics
-        $totalSold    = $product->saleItems()->sum('quantity');
-        $totalRevenue = $product->saleItems()->sum('total_price');
-        $profitMargin = $product->selling_price - $product->purchase_price;
+        // $totalSold    = $product->saleItems()->sum('quantity');
+        // $totalRevenue = $product->saleItems()->sum('total_price');
+        // $profitMargin = $product->selling_price - $product->purchase_price;
 
-        $productData               = $product->toArray();
-        $productData['statistics'] = [
-            'total_sold'        => $totalSold,
-            'total_revenue'     => $totalRevenue,
-            'profit_margin'     => $profitMargin,
-            'profit_percentage' => $product->purchase_price > 0 ?
-            (($profitMargin / $product->purchase_price) * 100) : 0,
-            'is_low_stock'      => $product->stock_quantity <= $product->min_stock_level,
-        ];
+        // $productData               = $product->toArray();
+        // $productData['statistics'] = [
+        //     'total_sold'        => $totalSold,
+        //     'total_revenue'     => $totalRevenue,
+        //     'profit_margin'     => $profitMargin,
+        //     'profit_percentage' => $product->purchase_price > 0 ?
+        //     (($profitMargin / $product->purchase_price) * 100) : 0,
+        //     'is_low_stock'      => $product->stock_quantity <= $product->min_stock_level,
+        // ];
 
         return response()->json([
             'status'  => 'success',
-            'product' => $productData,
+            'product' => $product,
         ], 200);
     }
-
 
     /**
      * Get products for dropdown/select options
@@ -308,8 +330,8 @@ class ProductController extends Controller
         try {
             $products = Product::where('status', true)
                 ->where('stock_quantity', '>', 0)
-                ->select('id', 'name', 'sku', 'price', 'stock_quantity', 'unit')
-                ->orderBy('name')
+                ->select('id', 'name',  'price', 'stock_quantity',)
+                ->orderBy('id')
                 ->get();
 
             return response()->json([

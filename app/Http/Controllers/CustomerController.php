@@ -28,7 +28,6 @@ class CustomerController extends Controller
             if ($validated) {
                 $customer = Customer::create([
                     'user_id'       => $user_id,
-
                     'name'          => $request->input('name'),
                     'email'         => $request->input('email'),
                     'phone'         => $request->input('phone'),
