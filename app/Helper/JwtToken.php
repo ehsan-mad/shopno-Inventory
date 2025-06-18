@@ -36,11 +36,7 @@ class JwtToken
            
             return $decode;
         } catch (\Exception $e) {
-            // This will show the reason for failure in response
-            return response()->json([
-                'message' => 'Invalid token',
-                'error'   => $e->getMessage(),
-            ], 401);
+            return null;
         }
     }
 

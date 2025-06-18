@@ -10,6 +10,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Models\User;
+use App\Helper\JwtToken;
 
 class SaleController extends Controller
 {
@@ -165,55 +167,89 @@ class SaleController extends Controller
      */
     public function salesList(Request $request)
     {
-        $userId = $request->header('user_id');
-
-        if (! $userId) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'User ID is required in header.',
-            ], 401);
-        }
-
         try {
-            $query = Sale::where('user_id', $userId)
-                ->with([
-                    'customer:id,name,email',
-                    'saleItems:sale_id,product_id,quantity,total',
-                    'saleItems.product:id,name',
-                ]);
+            $user_id = $request->header('user_id');
+            if (!$user_id) {
+                \Log::error('Sales List Error: User ID not found in request headers');
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User ID is required'
+                ], 400);
+            }
 
-            // Date range filter
+            $user = User::find($user_id);
+            if (!$user) {
+                \Log::error('Sales List Error: User not found for ID: ' . $user_id);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            $query = Sale::with(['customer', 'saleItems.product'])
+                ->where('user_id', $user_id);
+
+            // Apply filters
             if ($request->has('date_from')) {
                 $query->whereDate('sale_date', '>=', $request->date_from);
             }
-
             if ($request->has('date_to')) {
                 $query->whereDate('sale_date', '<=', $request->date_to);
             }
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
 
-            $sales = $query->select(
-                'id', 'customer_id', 'sale_date',
-                'total', 'status', 'created_at'
-            )
-                ->orderBy('sale_date', 'desc')
-                ->paginate($request->per_page ?? 15);
+            // Get paginated results
+            $sales = $query->orderBy('created_at', 'desc')
+                ->paginate(10);
+
+            // Transform the data to ensure it's in the correct format
+            $transformedSales = collect($sales->items())->map(function ($sale) {
+                return [
+                    'id' => $sale->id,
+                    'sale_number' => $sale->sale_number,
+                    'customer' => $sale->customer ? [
+                        'id' => $sale->customer->id,
+                        'name' => $sale->customer->name
+                    ] : null,
+                    'sale_date' => $sale->sale_date,
+                    'total' => $sale->total,
+                    'status' => $sale->status,
+                    'created_at' => $sale->created_at
+                ];
+            });
 
             return response()->json([
-                'status'     => 'success',
-                'sales'      => $sales->items(),
+                'status' => 'success',
+                'data' => $transformedSales,
                 'pagination' => [
                     'current_page' => $sales->currentPage(),
-                    'total_pages'  => $sales->lastPage(),
-                    'per_page'     => $sales->perPage(),
-                    'total_items'  => $sales->total(),
-                ],
-            ], 200);
-
+                    'per_page' => $sales->perPage(),
+                    'total_items' => $sales->total(),
+                    'last_page' => $sales->lastPage()
+                ]
+            ]);
         } catch (\Exception $e) {
+            \Log::error('Sales List Error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Request data: ' . json_encode([
+                'user_id' => $request->header('user_id'),
+                'email' => $request->header('email'),
+                'filters' => [
+                    'date_from' => $request->date_from,
+                    'date_to' => $request->date_to,
+                    'status' => $request->status
+                ]
+            ]));
+            
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Failed to fetch sales.',
-                'error'   => $e->getMessage(),
+                'status' => 'error',
+                'message' => 'An error occurred while fetching sales',
+                'debug' => [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]
             ], 500);
         }
     }
@@ -567,4 +603,30 @@ class SaleController extends Controller
      * Generate unique sale number
      */
 
+    public function index(Request $request)
+    {
+        $user_id = $request->header('user_id');
+        if (!$user_id) {
+            return redirect()->route('login')
+                ->with('error', 'Please login to continue');
+        }
+
+        $user = User::find($user_id);
+        if (!$user) {
+            return redirect()->route('login')
+                ->with('error', 'User not found');
+        }
+
+        // Get the token from cookie
+        $token = $request->cookie('token');
+        if (!$token) {
+            return redirect()->route('login')
+                ->with('error', 'Please login to continue');
+        }
+
+        return view('sales.index', [
+            'user' => $user,
+            'token' => $token
+        ]);
+    }
 }

@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -53,7 +54,7 @@ class CustomerController extends Controller
     public function customerList(Request $request)
     {
         $user_id = $request->header('user_id');
-        if (! $user_id) {
+        if (!$user_id) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'User ID is required in the header',
@@ -61,13 +62,7 @@ class CustomerController extends Controller
         }
 
         $customers = Customer::where('user_id', $user_id)->get();
-        if ($customers->isEmpty()) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'No customers found',
-            ], 404);
-        }
-
+        
         return response()->json([
             'status'  => 'success',
             'message' => 'Customers fetched successfully',
@@ -172,6 +167,11 @@ class CustomerController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
 
+    public function index(Request $request)
+    {
+        $user = User::find($request->headers->get('user_id'));
+        return view('customers.index', compact('user'));
     }
 }

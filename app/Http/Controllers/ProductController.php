@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Models\User;
 
 class ProductController extends Controller
 {
@@ -113,11 +114,20 @@ class ProductController extends Controller
         try {
             $userId = $request->header('user_id');
 
-            $products = Product::where('user_id', $userId)->select(
-                'id', 'name', 'category_id', 'price',
-                'selling_price', 'stock_quantity', 'image', 'status', 'created_at'
-            )
-                ->orderBy('id', 'asc')
+            if (!$userId) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'User ID is required in header.',
+                ], 401);
+            }
+
+            $products = Product::where('user_id', $userId)
+                ->with('category:id,name')
+                ->select(
+                    'id', 'name', 'description', 'category_id', 'price',
+                    'selling_price', 'stock_quantity', 'image', 'status', 'created_at'
+                )
+                ->orderBy('id', 'desc')
                 ->paginate($request->per_page ?? 15);
 
             return response()->json([
@@ -197,7 +207,7 @@ class ProductController extends Controller
                 'name'          => $request->name ?? $product->name,
                 'description'   => $request->description ?? $product->description,
                 'category_id'   => $request->category_id ?? $product->category_id,
-                'price'         => $request->purchase_price ?? $product->price,
+                'price'         => $request->price ?? $product->price,
                 'selling_price' => $request->selling_price ?? $product->selling_price,
                 'status'        => $request->status ?? $product->status,
                 'user_id'       => $userId,
@@ -346,6 +356,12 @@ class ProductController extends Controller
                 'error'   => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function index(Request $request)
+    {
+        $user = User::find($request->headers->get('user_id'));
+        return view('products.index', compact('user'));
     }
 
 }
