@@ -36,7 +36,6 @@ Route::post('/verifyOTP', [UserController::class, 'verifyOtp'])->name('user.veri
 Route::post('/sendOTP', [UserController::class, 'sendOtp'])->name('user.send.otp');
 Route::post('/resetPassword', [UserController::class, 'resetPassword'])->name('user.reset.password');
 Route::post('/userLogout', [UserController::class, 'logout'])->name('user.logout');
-Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
 // Protected Routes with TokenVerify middleware
 Route::middleware([\App\Http\Middleware\TokenVerify::class])->group(function () {
@@ -86,20 +85,7 @@ Route::middleware([\App\Http\Middleware\TokenVerify::class])->group(function () 
     // User Profile
     Route::get('/userProfile', [UserController::class, 'userProfile']);
     Route::post('/userUpdate', [UserController::class, 'userUpdate']);
-});
-
-// Add this route outside the middleware group for API access
-Route::get('/api/latest-invoice', function (\Illuminate\Http\Request $request) {
-    $customerId = $request->query('customer_id');
-    if (!$customerId) {
-        return response()->json(['status' => 'error', 'message' => 'customer_id is required'], 400);
-    }
-    $invoice = \App\Models\Invoice::where('customer_id', $customerId)
-        ->orderByDesc('created_at')
-        ->first();
-    if ($invoice) {
-        return response()->json(['status' => 'success', 'invoice' => $invoice]);
-    } else {
-        return response()->json(['status' => 'error', 'message' => 'No invoice found for this customer.']);
-    }
+    
+    // Logout
+    Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 });

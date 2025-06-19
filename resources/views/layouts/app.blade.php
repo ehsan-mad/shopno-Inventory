@@ -21,7 +21,7 @@
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
-    <div class="flex min-h-screen">
+    <div class="flex h-screen">
         <!-- Sidebar -->
         @include('components.sidebar')
         
