@@ -28,7 +28,7 @@
                     </div>
                 @endif
 
-                <form class="space-y-6" action="{{ route('login') }}" method="POST">
+                <form class="space-y-6" action="/userLogin" method="POST">
                     @csrf
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700">

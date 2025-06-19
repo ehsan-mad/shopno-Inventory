@@ -6,9 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Shopno Inventory')</title>
-    
-    <!-- Tailwind CSS CDN -->
+      <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom CSS -->
     <style>
@@ -19,16 +21,21 @@
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
-    <!-- Header -->
-    @include('components.header')
-    
-    <!-- Main Content -->
-    <main class="min-h-screen">
-        @yield('content')
-    </main>
-    
-    <!-- Footer -->
-    @include('components.footer')
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        @include('components.sidebar')
+        
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            @include('components.header')
+            
+            <!-- Main Content -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+                @yield('content')
+            </main>
+        </div>
+    </div>
     
     @stack('modals')
     @stack('scripts')

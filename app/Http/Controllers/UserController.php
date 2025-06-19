@@ -25,37 +25,10 @@ class UserController extends Controller
         return view('auth.register');
     }
 
-    public function showDashboard(Request $request)
+    public function userProfile()
     {
-        $token = $request->cookie('token');
-        $decoded = JwtToken::verifyToken($token);
-        
-        if (!$decoded || !isset($decoded->user_id)) {
-            return redirect()->route('login')
-                ->with('error', 'Please login to continue');
-        }
-
-        $user = User::find($decoded->user_id);
-        
-        if (!$user) {
-            return redirect()->route('login')
-                ->with('error', 'User not found');
-        }
-
-        $activeCustomers = Customer::where('status', true)->count();
-        $totalSales = Sale::where('user_id', $user->id)->count();
-        $cancelledSales = Sale::where('user_id', $user->id)->where('status', 'cancelled')->count();
-        $pendingSales = Sale::where('user_id', $user->id)->where('status', 'pending')->count();
-        $productStock = Product::where('user_id', $user->id)->sum('stock_quantity');
-
-        return view('dashboard', [
-            'user' => $user,
-            'activeCustomers' => $activeCustomers,
-            'totalSales' => $totalSales,
-            'cancelledSales' => $cancelledSales,
-            'pendingSales' => $pendingSales,
-            'productStock' => $productStock
-        ]);
+        $user = auth()->user();
+        return view('user.profile', compact('user'));
     }
 
     public function registration(Request $request)

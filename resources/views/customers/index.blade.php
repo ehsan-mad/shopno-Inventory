@@ -1,128 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customers - ShopNo Inventory</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-gray-100">
-    <div class="min-h-screen flex">
-        <!-- Sidebar -->
-        <div class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out">
-            <div class="flex items-center space-x-2 px-4">
-                <i class="fas fa-store text-2xl"></i>
-                <span class="text-2xl font-extrabold">ShopNo</span>
-            </div>
+@extends('layouts.app')
 
-            <!-- Nav -->
-            <nav>
-                <a href="{{ route('dashboard') }}" class="block py-2.5 px-4 rounded transition duration-200 {{ request()->routeIs('dashboard') ? 'bg-gray-900' : 'hover:bg-gray-700' }}">
-                    <i class="fas fa-home mr-2"></i>Dashboard
-                </a>
-                <a href="{{ route('products.index') }}" class="block py-2.5 px-4 rounded transition duration-200 {{ request()->routeIs('products.*') ? 'bg-gray-900' : 'hover:bg-gray-700' }}">
-                    <i class="fas fa-box mr-2"></i>Products
-                </a>
-                <a href="{{ route('categories.index') }}" class="block py-2.5 px-4 rounded transition duration-200 {{ request()->routeIs('categories.*') ? 'bg-gray-900' : 'hover:bg-gray-700' }}">
-                    <i class="fas fa-tags mr-2"></i>Categories
-                </a>
-                <a href="{{ route('customers.index') }}" class="block py-2.5 px-4 rounded transition duration-200 {{ request()->routeIs('customers.*') ? 'bg-gray-900' : 'hover:bg-gray-700' }}">
-                    <i class="fas fa-users mr-2"></i>Customers
-                </a>
-                <a href="{{ route('sales.index') }}" class="block py-2.5 px-4 rounded transition duration-200 {{ request()->routeIs('sales.*') ? 'bg-gray-900' : 'hover:bg-gray-700' }}">
-                    <i class="fas fa-shopping-cart mr-2"></i>Sales
-                </a>
-                <a href="{{ route('invoices.index') }}" class="block py-2.5 px-4 rounded transition duration-200 {{ request()->routeIs('invoices.*') ? 'bg-gray-900' : 'hover:bg-gray-700' }}">
-                    <i class="fas fa-file-invoice mr-2"></i>Invoices
-                </a>
-            </nav>
+@section('title', 'Customers')
+
+@section('content')
+    <!-- Page Title and Add Button -->
+    <div class="md:flex md:items-center md:justify-between mb-6">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Customers
+            </h2>
         </div>
+        <div class="mt-4 flex md:mt-0 md:ml-4">
+            <button type="button" onclick="openCreateModal()" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <i class="fas fa-plus mr-2"></i>
+                Add Customer
+            </button>
+        </div>
+    </div>
 
-        <!-- Content -->
-        <div class="flex-1">
-            <!-- Top Navigation -->
-            <nav class="bg-white shadow">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16">
-                        <div class="flex">
-                            <!-- Mobile menu button -->
-                            <button type="button" class="md:hidden px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" onclick="toggleSidebar()">
-                                <i class="fas fa-bars"></i>
-                            </button>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="ml-3 relative">
-                                <div class="flex items-center space-x-4">
-                                    <span class="text-gray-700">{{ $user->first_name }} {{ $user->last_name }}</span>
-                                    <form action="{{ route('logout') }}" method="POST" class="inline">
-                                        @csrf
-                                        <button type="submit" class="text-gray-700 hover:text-indigo-600">
-                                            Logout
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <!-- Main Content -->
-            <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <!-- Header -->
-                <div class="md:flex md:items-center md:justify-between mb-6">
-                    <div class="flex-1 min-w-0">
-                        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                            Customers
-                        </h2>
-                    </div>
-                    <div class="mt-4 flex md:mt-0 md:ml-4">
-                        <button type="button" onclick="openCreateModal()" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <i class="fas fa-plus mr-2"></i>
-                            Add Customer
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Customers Table -->
-                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <div class="px-4 py-5 sm:p-6">
-                        <div class="flex flex-col">
-                            <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                                    <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                                        <table class="min-w-full divide-y divide-gray-200">
-                                            <thead class="bg-gray-50">
-                                                <tr>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Customer
-                                                    </th>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Contact
-                                                    </th>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Type
-                                                    </th>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Status
-                                                    </th>
-                                                    <th scope="col" class="relative px-6 py-3">
-                                                        <span class="sr-only">Actions</span>
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="bg-white divide-y divide-gray-200" id="customersTableBody">
-                                                <!-- Customers will be loaded here -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
+    <!-- Customers Table -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex flex-col">
+                <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                    <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                        <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Name
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Email
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Phone
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th scope="col" class="relative px-6 py-3">
+                                            <span class="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="customersTableBody">
+                                    <!-- Customers will be loaded here -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     </div>
 
@@ -458,12 +388,5 @@
                 alert('An error occurred while deleting the customer');
             });
         }
-
-        // Sidebar toggle
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.bg-gray-800');
-            sidebar.classList.toggle('-translate-x-full');
-        }
     </script>
-</body>
-</html> 
+@endsection 

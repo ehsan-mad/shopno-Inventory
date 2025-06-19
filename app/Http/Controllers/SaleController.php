@@ -102,6 +102,16 @@ class SaleController extends Controller
                 'notes'       => $request->notes,
             ]);
 
+            // Create invoice for this sale
+            \App\Models\Invoice::create([
+                'sale_id'     => $sale->id,
+                'customer_id' => $sale->customer_id,
+                'tax'         => $sale->tax,
+                'discount'    => $sale->discount,
+                'total'       => $sale->total,
+                'status'      => 'draft',
+            ]);
+
             // Create sale items and update stock
             foreach ($request->items as $item) {
                 $product = Product::where('id', $item['product_id'])

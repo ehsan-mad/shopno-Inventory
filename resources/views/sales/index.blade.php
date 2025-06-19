@@ -1,302 +1,193 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales - Shopno Inventory</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
-<body class="bg-gray-100">
-    <div class="min-h-screen flex">
-        <!-- Sidebar -->
-        <div class="bg-gray-800 text-white w-64 py-6 flex flex-col">
-            <div class="px-6 mb-8">
-                <h1 class="text-2xl font-bold">Shopno Inventory</h1>
+@extends('layouts.app')
+
+@section('title', 'Sales')
+
+@section('content')
+    <!-- Page Title and Add Button -->
+    <div class="md:flex md:items-center md:justify-between mb-6">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Sales
+            </h2>
+        </div>
+        <div class="mt-4 flex md:mt-0 md:ml-4">
+            <button type="button" onclick="openCreateModal()" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <i class="fas fa-plus mr-2"></i>
+                Add Sale
+            </button>
+        </div>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex flex-col">
+                <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                    <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                        <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Sale #
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Customer
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Date
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Total
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th scope="col" class="relative px-6 py-3">
+                                            <span class="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="salesTableBody">
+                                    <!-- Sales will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <nav class="flex-1">
-                <a href="/dashboard" class="block px-6 py-2 hover:bg-gray-700">
-                    <i class="fas fa-home mr-2"></i> Dashboard
-                </a>
-                <a href="/products" class="block px-6 py-2 hover:bg-gray-700">
-                    <i class="fas fa-box mr-2"></i> Products
-                </a>
-                <a href="/categories" class="block px-6 py-2 hover:bg-gray-700">
-                    <i class="fas fa-tags mr-2"></i> Categories
-                </a>
-                <a href="/customers" class="block px-6 py-2 hover:bg-gray-700">
-                    <i class="fas fa-users mr-2"></i> Customers
-                </a>
-                <a href="/sales" class="block px-6 py-2 bg-gray-700">
-                    <i class="fas fa-shopping-cart mr-2"></i> Sales
-                </a>
-                <a href="/invoices" class="block px-6 py-2 hover:bg-gray-700">
-                    <i class="fas fa-file-invoice mr-2"></i> Invoices
-                </a>
-            </nav>
-            <div class="px-6 py-4 border-t border-gray-700">
-                <form action="/logout" method="POST" class="flex items-center">
-                    @csrf
-                    <button type="submit" class="flex items-center text-gray-300 hover:text-white">
-                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
-                    </button>
+        </div>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="flex items-center justify-between mt-4" id="salesPagination" style="display:none;">
+        <div>
+            Showing <span id="salesPageStart">0</span> to <span id="salesPageEnd">0</span> of <span id="salesTotal">0</span> sales
+        </div>
+        <div>
+            <button onclick="previousSalesPage()" class="px-3 py-1 bg-gray-200 rounded mr-2">Previous</button>
+            <button onclick="nextSalesPage()" class="px-3 py-1 bg-gray-200 rounded">Next</button>
+        </div>
+    </div>
+
+    <!-- Create/Edit Sale Modal -->
+    <div id="saleModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form id="saleForm" class="p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modalTitle">Add Sale</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="customer_id" class="block text-sm font-medium text-gray-700">Customer</label>
+                            <select name="customer_id" id="customer_id" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                                <option value="">Loading customers...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="sale_date" class="block text-sm font-medium text-gray-700">Date</label>
+                            <input type="date" name="sale_date" id="sale_date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        </div>
+                        <!-- Sale Items Section -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Sale Items</label>
+                            <div class="flex items-center space-x-2 mb-2 font-semibold text-gray-700 text-sm bg-gray-50 p-2 rounded">
+                                <div class="w-1/2">Product</div>
+                                <div class="w-1/6">Quantity</div>
+                                <div class="w-1/6">Price</div>
+                                <div class="w-1/6 text-center">Remove</div>
+                            </div>
+                            <div id="saleItemsContainer"></div>
+                            <button type="button" onclick="addSaleItemRow()" class="mt-2 px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm">+ Add Item</button>
+                        </div>
+                        <div>
+                            <label for="discount" class="block text-sm font-medium text-gray-700">Discount</label>
+                            <input type="number" name="discount" id="discount" min="0" step="0.01" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="tax" class="block text-sm font-medium text-gray-700">Tax</label>
+                            <input type="number" name="tax" id="tax" min="0" step="0.01" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                            <textarea name="notes" id="notes" rows="2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                        </div>
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                            <select name="status" id="status" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option value="pending">Pending</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-2">
+                        <button type="button" onclick="closeSaleModal()" class="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">Cancel</button>
+                        <button type="submit" class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">Save</button>
+                    </div>
+                    <div id="saleFormMessage" class="mt-3 text-sm"></div>
                 </form>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="flex-1">
-            <!-- Top Navigation -->
-            <nav class="bg-white shadow-sm">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16">
-                        <div class="flex items-center">
-                            <h2 class="text-xl font-semibold">Sales</h2>
-                        </div>
-                        <div class="flex items-center">
-                            <span class="text-gray-700 mr-4">{{ $user->first_name }} {{ $user->last_name }}</span>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <!-- Content -->
-            <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <!-- Filters -->
-                <div class="bg-white p-4 rounded-lg shadow mb-6">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Date From</label>
-                            <input type="date" id="dateFrom" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Date To</label>
-                            <input type="date" id="dateTo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Status</label>
-                            <select id="statusFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All</option>
-                                <option value="pending">Pending</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                        </div>
-                        <div class="flex items-end">
-                            <button onclick="applyFilters()" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
-                                Apply Filters
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sales Table -->
-                <div class="bg-white rounded-lg shadow">
-                    <div class="p-4 border-b border-gray-200">
-                        <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-medium">Sales List</h3>
-                            <button onclick="openModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
-                                <i class="fas fa-plus mr-2"></i> New Sale
-                            </button>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sale #</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="salesTableBody" class="bg-white divide-y divide-gray-200">
-                                <!-- Sales will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- Pagination -->
-                    <div class="px-6 py-4 border-t border-gray-200">
-                        <div class="flex justify-between items-center">
-                            <div class="text-sm text-gray-700">
-                                Showing <span id="paginationStart">0</span> to <span id="paginationEnd">0</span> of <span id="paginationTotal">0</span> entries
-                            </div>
-                            <div class="flex space-x-2">
-                                <button onclick="changePage('prev')" class="px-3 py-1 border rounded-md hover:bg-gray-100">Previous</button>
-                                <button onclick="changePage('next')" class="px-3 py-1 border rounded-md hover:bg-gray-100">Next</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sale Modal -->
-    <div id="saleModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-4/5 shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium" id="modalTitle">New Sale</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-500">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="saleForm" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Customer</label>
-                        <select id="customer_id" name="customer_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">Select Customer</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Sale Date</label>
-                        <input type="date" id="sale_date" name="sale_date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                </div>
-
-                <div class="border-t border-gray-200 pt-4">
-                    <h4 class="text-md font-medium mb-4">Sale Items</h4>
-                    <div id="saleItems" class="space-y-4">
-                        <div class="sale-item grid grid-cols-12 gap-4">
-                            <div class="col-span-4">
-                                <label class="block text-sm font-medium text-gray-700">Product</label>
-                                <select name="items[0][product_id]" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">Select Product</option>
-                                </select>
-                            </div>
-                            <div class="col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                                <input type="number" name="items[0][quantity]" required min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-                            <div class="col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Price</label>
-                                <input type="number" name="items[0][price]" required min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-                            <div class="col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Total</label>
-                                <input type="text" readonly class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50">
-                            </div>
-                            <div class="col-span-2 flex items-end">
-                                <button type="button" onclick="removeItem(this)" class="text-red-600 hover:text-red-800">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="button" onclick="addItem()" class="mt-4 text-indigo-600 hover:text-indigo-800">
-                        <i class="fas fa-plus mr-2"></i> Add Item
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-200 pt-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Subtotal</label>
-                        <input type="text" id="subtotal" readonly class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Discount</label>
-                        <input type="number" id="discount" name="discount" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Tax</label>
-                        <input type="number" id="tax" name="tax" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                </div>
-
-                <div class="border-t border-gray-200 pt-4">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Total Amount</label>
-                            <input type="text" id="total" readonly class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Status</label>
-                            <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="pending">Pending</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="border-t border-gray-200 pt-4">
-                    <label class="block text-sm font-medium text-gray-700">Notes</label>
-                    <textarea id="notes" name="notes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-                </div>
-
-                <div class="flex justify-end space-x-3 mt-4">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
-                        Save Sale
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3 text-center">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Sale</h3>
-                <div class="mt-2 px-7 py-3">
-                    <p class="text-sm text-gray-500">Are you sure you want to delete this sale? This action cannot be undone.</p>
-                </div>
-                <div class="flex justify-center space-x-3 mt-4">
-                    <button onclick="closeDeleteModal()" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">
-                        Cancel
-                    </button>
-                    <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                        Delete
-                    </button>
-                </div>
             </div>
         </div>
     </div>
 
     <!-- View Sale Modal -->
-    <div id="viewModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-4/5 shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium" id="viewModalTitle">Sale Details</h3>
-                <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-500">
-                    <i class="fas fa-times"></i>
-                </button>
+    <div id="viewModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Sale Details</h3>
+                    <div id="viewSaleContent">Loading...</div>
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" onclick="closeViewModal()" class="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">Close</button>
+                    </div>
+                </div>
             </div>
-            <div id="viewModalContent" class="p-6">
-                <!-- Sale details will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Delete Sale</h3>
+                    <p>Are you sure you want to delete this sale? This action cannot be undone.</p>
+                    <div class="mt-6 flex justify-end space-x-2">
+                        <button type="button" onclick="closeDeleteModal()" class="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">Cancel</button>
+                        <button type="button" onclick="confirmDeleteSale()" class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm">Delete</button>
+                    </div>
+                    <div id="deleteSaleMessage" class="mt-3 text-sm"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentPage = 1;
-        let selectedSaleId = null;
-        let isLoading = false;
+        let salesCurrentPage = 1;
+        let salesLastPage = 1;
+        let salesPerPage = 10;
+        let salesTotal = 0;
+        let productOptions = [];
+        let editingSaleId = null;
+        let deletingSaleId = null;
 
-        // Load sales on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadSales();
-            loadCustomers();
-            loadProducts();
         });
 
-        // Load sales
         function loadSales(page = 1) {
             const tableBody = document.getElementById('salesTableBody');
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading...</td></tr>';
+            const pagination = document.getElementById('salesPagination');
+            tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>';
+            pagination.style.display = 'none';
 
-            const url = new URL('/salesList', window.location.origin);
-            url.searchParams.append('page', page);
-
-            fetch(url, {
+            fetch(`/salesList?page=${page}`, {
                 headers: {
                     'user_id': '{{ $user->id }}',
                     'email': '{{ $user->email }}',
@@ -313,70 +204,75 @@
             })
             .then(data => {
                 if (data.status === 'success') {
-                    tableBody.innerHTML = data.data.map(sale => `
-                        <tr>
-                            <td class="px-4 py-2 text-sm text-gray-700">${sale.id ?? 'N/A'}</td>
-                            <td>${sale.customer ? sale.customer.name : 'N/A'}</td>
-                            <td>${sale.sale_date || 'N/A'}</td>
-                            <td>${sale.total || 'N/A'}</td>
-                            <td>${sale.status || 'N/A'}</td>
-                            <td class="px-4 py-2 text-sm text-gray-700">
-                                <button onclick="viewSale(${sale.id})" class="text-blue-600 hover:text-blue-900">View</button>
-                                <button onclick="editSale(${sale.id})" class="text-yellow-600 hover:text-yellow-900">Edit</button>
-                                <button onclick="deleteSale(${sale.id})" class="text-red-600 hover:text-red-900">Delete</button>
-                                <button onclick="downloadInvoice(${sale.id})" class="text-green-600 hover:text-green-900">Download Invoice</button>
-                                <button onclick="previewInvoice(${sale.id})" class="text-blue-600 hover:text-blue-900">Preview Invoice</button>
+                    const sales = data.data || [];
+                    salesCurrentPage = data.pagination.current_page;
+                    salesLastPage = data.pagination.last_page;
+                    salesPerPage = data.pagination.per_page;
+                    salesTotal = data.pagination.total_items;
+
+                    tableBody.innerHTML = '';
+                    if (sales.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No sales found</td></tr>';
+                        return;
+                    }
+
+                    sales.forEach(sale => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap">${sale.sale_number || sale.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">${sale.customer ? sale.customer.name : 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">${sale.sale_date ? new Date(sale.sale_date).toLocaleDateString() : ''}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">$${sale.total}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${sale.status === 'completed' ? 'bg-green-100 text-green-800' : sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
+                                    ${sale.status ? sale.status.charAt(0).toUpperCase() + sale.status.slice(1) : 'N/A'}
+                                </span>
                             </td>
-                        </tr>
-                    `).join('');
-
-                    // Update pagination
-                    const pagination = document.getElementById('pagination');
-                    if (pagination) {
-                        pagination.innerHTML = `
-                            <button onclick="loadSales(${data.pagination.current_page - 1})" ${data.pagination.current_page === 1 ? 'disabled' : ''} class="px-3 py-1 bg-gray-200 rounded">Previous</button>
-                            <span class="mx-2">Page ${data.pagination.current_page} of ${data.pagination.last_page}</span>
-                            <button onclick="loadSales(${data.pagination.current_page + 1})" ${data.pagination.current_page === data.pagination.last_page ? 'disabled' : ''} class="px-3 py-1 bg-gray-200 rounded">Next</button>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button onclick="viewSale(${sale.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="editSale(${sale.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteSale(${sale.id})" class="text-red-600 hover:text-red-900">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
                         `;
-                    }
+                        tableBody.appendChild(row);
+                    });
+
+                    // Pagination info
+                    document.getElementById('salesPageStart').textContent = ((salesCurrentPage - 1) * salesPerPage) + 1;
+                    document.getElementById('salesPageEnd').textContent = Math.min(salesCurrentPage * salesPerPage, salesTotal);
+                    document.getElementById('salesTotal').textContent = salesTotal;
+                    pagination.style.display = salesTotal > 0 ? '' : 'none';
                 } else {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Error loading sales</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading sales</td></tr>';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Error loading sales</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading sales</td></tr>';
             });
         }
 
-        // Load customers for dropdown
-        function loadCustomers() {
-            fetch('/customerList', {
-                headers: {
-                    'user_id': '{{ $user->id }}',
-                    'email': '{{ $user->email }}',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    const customerSelect = document.getElementById('customer_id');
-                    data.data.forEach(customer => {
-                        const option = document.createElement('option');
-                        option.value = customer.id;
-                        option.textContent = customer.name;
-                        customerSelect.appendChild(option);
-                    });
-                }
-            })
-            .catch(error => console.error('Error:', error));
+        function previousSalesPage() {
+            if (salesCurrentPage > 1) {
+                loadSales(salesCurrentPage - 1);
+            }
         }
 
-        // Load products for dropdown
-        function loadProducts() {
-            fetch('/productList', {
+        function nextSalesPage() {
+            if (salesCurrentPage < salesLastPage) {
+                loadSales(salesCurrentPage + 1);
+            }
+        }
+
+        // Fetch products for sale item dropdowns
+        function loadProductsForSale() {
+            fetch('/productList?per_page=100', {
                 headers: {
                     'user_id': '{{ $user->id }}',
                     'email': '{{ $user->email }}',
@@ -385,445 +281,304 @@
                 },
                 credentials: 'same-origin'
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    const productSelects = document.querySelectorAll('select[name^="items"][name$="[product_id]"]');
-                    const products = data.products.data || [];
-                    
-                    productSelects.forEach(select => {
-                        // Clear existing options except the first one
-                        while (select.options.length > 1) {
-                            select.remove(1);
-                        }
-                        
-                        products.forEach(product => {
-                            const option = document.createElement('option');
-                            option.value = product.id;
-                            option.textContent = `${product.name} (Stock: ${product.stock_quantity})`;
-                            option.dataset.price = product.selling_price;
-                            select.appendChild(option);
-                        });
-                    });
-
-                    // Add event listener to update price when product is selected
-                    productSelects.forEach(select => {
-                        select.addEventListener('change', function() {
-                            const selectedOption = this.options[this.selectedIndex];
-                            const priceInput = this.closest('.sale-item').querySelector('input[name$="[price]"]');
-                            if (selectedOption && selectedOption.dataset.price) {
-                                priceInput.value = selectedOption.dataset.price;
-                                calculateItemTotal(priceInput);
-                            }
-                        });
-                    });
+                    productOptions = (data.products && data.products.data) ? data.products.data : [];
                 } else {
-                    console.error('Error loading products:', data.message);
+                    productOptions = [];
                 }
+                renderSaleItemsRows();
             })
-            .catch(error => {
-                console.error('Error:', error);
+            .catch(() => {
+                productOptions = [];
+                renderSaleItemsRows();
             });
         }
 
-        // Calculate item total
-        function calculateItemTotal(input) {
-            const itemDiv = input.closest('.sale-item');
-            const quantity = itemDiv.querySelector('input[name$="[quantity]"]').value;
-            const price = itemDiv.querySelector('input[name$="[price]"]').value;
-            const total = quantity * price;
-            itemDiv.querySelector('input[readonly]').value = total.toFixed(2);
-            calculateTotals();
+        // Sale items dynamic rows
+        let saleItems = [];
+        function addSaleItemRow() {
+            saleItems.push({ product_id: '', quantity: 1, price: '' });
+            renderSaleItemsRows();
         }
-
-        // Calculate all totals
-        function calculateTotals() {
-            let subtotal = 0;
-            document.querySelectorAll('.sale-item input[readonly]').forEach(input => {
-                subtotal += parseFloat(input.value || 0);
-            });
-
-            const discount = parseFloat(document.getElementById('discount').value || 0);
-            const tax = parseFloat(document.getElementById('tax').value || 0);
-            const total = subtotal - discount + tax;
-
-            document.getElementById('subtotal').value = subtotal.toFixed(2);
-            document.getElementById('total').value = total.toFixed(2);
+        function removeSaleItemRow(index) {
+            saleItems.splice(index, 1);
+            renderSaleItemsRows();
         }
-
-        // Add new item row
-        function addItem() {
-            const itemsContainer = document.getElementById('saleItems');
-            const itemCount = itemsContainer.children.length;
-            const newItem = document.createElement('div');
-            newItem.className = 'sale-item grid grid-cols-12 gap-4';
-            newItem.innerHTML = `
-                <div class="col-span-4">
-                    <label class="block text-sm font-medium text-gray-700">Product</label>
-                    <select name="items[${itemCount}][product_id]" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">Select Product</option>
-                    </select>
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                    <input type="number" name="items[${itemCount}][quantity]" required min="1" onchange="calculateItemTotal(this)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Price</label>
-                    <input type="number" name="items[${itemCount}][price]" required min="0" step="0.01" onchange="calculateItemTotal(this)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Total</label>
-                    <input type="text" readonly class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50">
-                </div>
-                <div class="col-span-2 flex items-end">
-                    <button type="button" onclick="removeItem(this)" class="text-red-600 hover:text-red-800">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-
-            // Add products to the new select
-            const productSelect = newItem.querySelector('select');
-            document.querySelector('select[name="items[0][product_id]"]').querySelectorAll('option').forEach(option => {
-                productSelect.appendChild(option.cloneNode(true));
-            });
-
-            itemsContainer.appendChild(newItem);
-        }
-
-        // Remove item row
-        function removeItem(button) {
-            const itemsContainer = document.getElementById('saleItems');
-            if (itemsContainer.children.length > 1) {
-                button.closest('.sale-item').remove();
-                calculateTotals();
+        function updateSaleItemField(index, field, value) {
+            saleItems[index][field] = value;
+            // If the product is changed, auto-fill the price from productOptions
+            if (field === 'product_id') {
+                const product = productOptions.find(p => p.id == value);
+                if (product) {
+                    saleItems[index].price = product.price;
+                } else {
+                    saleItems[index].price = '';
+                }
+                renderSaleItemsRows(); // re-render to update the price input
             }
         }
-
-        // Form submission
-        document.getElementById('saleForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const isEdit = selectedSaleId !== null;
-            const url = isEdit ? '/saleUpdate' : '/saleCreate';
-            
-            if (isEdit) {
-                formData.append('id', selectedSaleId);
+        function renderSaleItemsRows() {
+            const container = document.getElementById('saleItemsContainer');
+            container.innerHTML = '';
+            if (saleItems.length === 0) {
+                container.innerHTML = '<div class="text-gray-400 text-sm">No items. Add at least one product.</div>';
             }
-
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'user_id': '{{ $user->id }}',
-                    'email': '{{ $user->email }}',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                credentials: 'same-origin',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    closeModal();
-                    loadSales();
-                } else {
-                    alert(data.message || 'An error occurred');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while saving the sale');
-            });
-        });
-
-        // View sale details
-        function viewSale(id) {
-            selectedSaleId = id;
-            fetch(`/saleShow?id=${id}`, {
-                headers: {
-                    'user_id': '{{ $user->id }}',
-                    'email': '{{ $user->email }}',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    const sale = data.sale;
-                    const viewModal = document.getElementById('viewModal');
-                    const viewModalContent = document.getElementById('viewModalContent');
-                    viewModalContent.innerHTML = `
-                        <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-lg shadow-lg text-white">
-                            <h3 class="text-lg font-medium mb-4 flex items-center">
-                                <i class="fas fa-receipt mr-2"></i> Sale Details
-                            </h3>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p class="flex items-center"><i class="fas fa-id-card mr-2"></i> <strong>Sale ID:</strong> ${sale.id}</p>
-                                    <p class="flex items-center"><i class="fas fa-hashtag mr-2"></i> <strong>Sale Number:</strong> ${sale.sale_number || 'N/A'}</p>
-                                    <p class="flex items-center"><i class="fas fa-user mr-2"></i> <strong>Customer:</strong> ${sale.customer ? sale.customer.name : 'N/A'}</p>
-                                    <p class="flex items-center"><i class="fas fa-calendar mr-2"></i> <strong>Sale Date:</strong> ${sale.sale_date || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <p class="flex items-center"><i class="fas fa-dollar-sign mr-2"></i> <strong>Total:</strong> ${sale.total || 'N/A'}</p>
-                                    <p class="flex items-center"><i class="fas fa-info-circle mr-2"></i> <strong>Status:</strong> ${sale.status || 'N/A'}</p>
-                                    <p class="flex items-center"><i class="fas fa-clock mr-2"></i> <strong>Created At:</strong> ${sale.created_at || 'N/A'}</p>
-                                </div>
-                            </div>
-                            <h4 class="text-md font-medium mt-4 mb-2 flex items-center">
-                                <i class="fas fa-shopping-cart mr-2"></i> Sale Items
-                            </h4>
-                            <div class="mt-2">
-                                ${sale.sale_items ? sale.sale_items.map(item => `
-                                    <div class="border-t border-white pt-2">
-                                        <p class="flex items-center"><i class="fas fa-box mr-2"></i> <strong>Product:</strong> ${item.product ? item.product.name : 'N/A'}</p>
-                                        <p class="flex items-center"><i class="fas fa-sort-numeric-up mr-2"></i> <strong>Quantity:</strong> ${item.quantity || 'N/A'}</p>
-                                        <p class="flex items-center"><i class="fas fa-tag mr-2"></i> <strong>Price:</strong> ${item.price || 'N/A'}</p>
-                                        <p class="flex items-center"><i class="fas fa-calculator mr-2"></i> <strong>Total:</strong> ${item.total || 'N/A'}</p>
-                                    </div>
-                                `).join('') : 'No items found'}
-                            </div>
-                        </div>
-                    `;
-                    viewModal.classList.remove('hidden');
-                } else {
-                    alert(data.message || 'Error loading sale details');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error loading sale details');
-            });
-        }
-
-        // Edit sale
-        function editSale(id) {
-            selectedSaleId = id;
-            fetch(`/saleShow?id=${id}`, {
-                headers: {
-                    'user_id': '{{ $user->id }}',
-                    'email': '{{ $user->email }}',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Received data:', data);
-                console.log('Sale details:', data.sale);
-                console.log('Sale items:', data.sale.sale_items);
-                if (data.status === 'success') {
-                    const sale = data.sale;
-                    console.log('Sale details:', sale);
-                    document.getElementById('modalTitle').textContent = 'Edit Sale';
-                    document.getElementById('customer_id').value = sale.customer_id;
-                    document.getElementById('sale_date').value = sale.sale_date.split(' ')[0];
-                    document.getElementById('discount').value = sale.discount;
-                    document.getElementById('tax').value = sale.tax;
-                    document.getElementById('status').value = sale.status;
-                    document.getElementById('notes').value = sale.notes;
-
-                    // Clear existing items
-                    const itemsContainer = document.getElementById('saleItems');
-                    itemsContainer.innerHTML = '';
-
-                    // Add sale items
-                    if (sale.sale_items && sale.sale_items.length > 0) {
-                        sale.sale_items.forEach((item, index) => {
-                            if (index > 0) addItem();
-                            const itemDiv = itemsContainer.children[index];
-                            if (itemDiv) {
-                                const productSelect = itemDiv.querySelector('select[name$="[product_id]"]');
-                                const quantityInput = itemDiv.querySelector('input[name$="[quantity]"]');
-                                const priceInput = itemDiv.querySelector('input[name$="[price]"]');
-                                if (productSelect) productSelect.value = item.product_id;
-                                if (quantityInput) quantityInput.value = item.quantity;
-                                if (priceInput) priceInput.value = item.price;
-                                calculateItemTotal(quantityInput);
-                            }
-                        });
-                    }
-
-                    document.getElementById('subtotal').value = sale.total;
-                    document.getElementById('total').value = sale.total;
-
-                    document.getElementById('saleModal').classList.remove('hidden');
-                } else {
-                    alert(data.message || 'Error loading sale details');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error loading sale details');
-            });
-        }
-
-        // Delete sale
-        function deleteSale(id) {
-            selectedSaleId = id;
-            document.getElementById('deleteModal').classList.remove('hidden');
-        }
-
-        function confirmDelete() {
-            fetch('/saleDelete', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'user_id': '{{ $user->id }}',
-                    'email': '{{ $user->email }}',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({ id: selectedSaleId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    closeDeleteModal();
-                    loadSales();
-                } else {
-                    alert(data.message || 'An error occurred');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while deleting the sale');
+            saleItems.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center space-x-2 mb-2';
+                // Product select
+                let productSelect = `<select class="border rounded px-2 py-1" onchange="updateSaleItemField(${idx}, 'product_id', this.value)">`;
+                productSelect += '<option value="">Select product</option>';
+                productOptions.forEach(p => {
+                    productSelect += `<option value="${p.id}" ${item.product_id == p.id ? 'selected' : ''}>${p.name}</option>`;
+                });
+                productSelect += '</select>';
+                // Quantity input
+                let qtyInput = `<input type="number" min="1" class="border rounded px-2 py-1 w-20" value="${item.quantity}" onchange="updateSaleItemField(${idx}, 'quantity', this.value)">`;
+                // Price input
+                let priceInput = `<input type="number" min="0" step="0.01" class="border rounded px-2 py-1 w-24" value="${item.price}" onchange="updateSaleItemField(${idx}, 'price', this.value)">`;
+                // Total (quantity * price)
+                let total = (parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0);
+                let totalField = `<input type='text' class='border rounded px-2 py-1 w-24 bg-gray-100' value='${total.toFixed(2)}' readonly title='Total = Quantity x Price'>`;
+                // Remove button
+                let removeBtn = `<button type="button" onclick="removeSaleItemRow(${idx})" class="text-red-500 hover:text-red-700 ml-2">&times;</button>`;
+                row.innerHTML = productSelect + qtyInput + priceInput + totalField + removeBtn;
+                container.appendChild(row);
             });
         }
 
         // Modal functions
-        function openModal() {
-            selectedSaleId = null;
-            document.getElementById('modalTitle').textContent = 'New Sale';
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = 'Add Sale';
             document.getElementById('saleForm').reset();
-            document.getElementById('saleItems').innerHTML = `
-                <div class="sale-item grid grid-cols-12 gap-4">
-                    <div class="col-span-4">
-                        <label class="block text-sm font-medium text-gray-700">Product</label>
-                        <select name="items[0][product_id]" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">Select Product</option>
-                        </select>
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                        <input type="number" name="items[0][quantity]" required min="1" onchange="calculateItemTotal(this)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700">Price</label>
-                        <input type="number" name="items[0][price]" required min="0" step="0.01" onchange="calculateItemTotal(this)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700">Total</label>
-                        <input type="text" readonly class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50">
-                    </div>
-                    <div class="col-span-2 flex items-end">
-                        <button type="button" onclick="removeItem(this)" class="text-red-600 hover:text-red-800">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-            loadProducts();
+            document.getElementById('saleFormMessage').textContent = '';
+            loadCustomers();
+            loadProductsForSale();
+            saleItems = [];
+            addSaleItemRow();
             document.getElementById('saleModal').classList.remove('hidden');
         }
-
-        function closeModal() {
+        function closeSaleModal() {
             document.getElementById('saleModal').classList.add('hidden');
-            selectedSaleId = null;
+            editingSaleId = null;
         }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.add('hidden');
-            selectedSaleId = null;
+        // Load customers for dropdown
+        function loadCustomers() {
+            const select = document.getElementById('customer_id');
+            select.innerHTML = '<option value="">Loading customers...</option>';
+            fetch('/customerList', {
+                headers: {
+                    'user_id': '{{ $user->id }}',
+                    'email': '{{ $user->email }}',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const customers = data.data || [];
+                    select.innerHTML = '<option value="">Select a customer</option>';
+                    customers.forEach(customer => {
+                        select.innerHTML += `<option value="${customer.id}">${customer.name}</option>`;
+                    });
+                } else {
+                    select.innerHTML = '<option value="">Error loading customers</option>';
+                }
+            })
+            .catch(() => {
+                select.innerHTML = '<option value="">Error loading customers</option>';
+            });
         }
-
-        // Filter functions
-        function applyFilters() {
-            currentPage = 1;
-            loadSales();
-        }
-
-        function changePage(direction) {
-            if (direction === 'prev' && currentPage > 1) {
-                currentPage--;
-            } else if (direction === 'next') {
-                currentPage++;
+        // Form submission
+        document.getElementById('saleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('saleFormMessage').textContent = '';
+            // Validate sale items
+            if (!saleItems.length || saleItems.some(item => !item.product_id || !item.quantity || !item.price)) {
+                document.getElementById('saleFormMessage').textContent = 'Please add at least one valid sale item.';
+                document.getElementById('saleFormMessage').className = 'mt-3 text-red-600 text-sm';
+                return;
             }
-            loadSales();
-        }
-
-        function updatePagination(pagination) {
-            document.getElementById('paginationStart').textContent = ((pagination.current_page - 1) * pagination.per_page) + 1;
-            document.getElementById('paginationEnd').textContent = Math.min(pagination.current_page * pagination.per_page, pagination.total_items);
-            document.getElementById('paginationTotal').textContent = pagination.total_items;
-        }
-
-        function getStatusClass(status) {
-            switch (status) {
-                case 'completed':
-                    return 'bg-green-100 text-green-800';
-                case 'pending':
-                    return 'bg-yellow-100 text-yellow-800';
-                case 'cancelled':
-                    return 'bg-red-100 text-red-800';
-                default:
-                    return 'bg-gray-100 text-gray-800';
+            // Build payload
+            const payload = {
+                customer_id: document.getElementById('customer_id').value,
+                sale_date: document.getElementById('sale_date').value,
+                status: document.getElementById('status').value,
+                items: saleItems
+            };
+            // Optional fields
+            const discount = document.getElementById('discount').value;
+            if (discount) payload.discount = parseFloat(discount);
+            const tax = document.getElementById('tax').value;
+            if (tax) payload.tax = parseFloat(tax);
+            const notes = document.getElementById('notes').value;
+            if (notes) payload.notes = notes;
+            let url = '/saleCreate';
+            let method = 'POST';
+            if (editingSaleId) {
+                url = '/saleUpdate';
+                method = 'POST';
+                payload.id = editingSaleId;
             }
-        }
+            fetch(url, {
+                method: method,
+                headers: {
+                    'user_id': '{{ $user->id }}',
+                    'email': '{{ $user->email }}',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('saleFormMessage').textContent = editingSaleId ? 'Sale updated successfully!' : 'Sale created successfully!';
+                    document.getElementById('saleFormMessage').className = 'mt-3 text-green-600 text-sm';
+                    setTimeout(() => {
+                        closeSaleModal();
+                        loadSales(salesCurrentPage);
+                        editingSaleId = null;
+                    }, 1000);
+                } else {
+                    document.getElementById('saleFormMessage').textContent = data.message || 'Error saving sale.';
+                    document.getElementById('saleFormMessage').className = 'mt-3 text-red-600 text-sm';
+                }
+            })
+            .catch(() => {
+                document.getElementById('saleFormMessage').textContent = 'Error saving sale.';
+                document.getElementById('saleFormMessage').className = 'mt-3 text-red-600 text-sm';
+            });
+        });
 
-        // View Sale Modal functions
+        // Preview Sale
+        function viewSale(id) {
+            document.getElementById('viewSaleContent').innerHTML = 'Loading...';
+            document.getElementById('viewModal').classList.remove('hidden');
+            fetch(`/saleShow?id=${id}`, {
+                headers: {
+                    'user_id': '{{ $user->id }}',
+                    'email': '{{ $user->email }}',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const sale = data.sale;
+                    let html = `<div><strong>Sale #:</strong> ${sale.sale_number || sale.id}</div>`;
+                    html += `<div><strong>Customer:</strong> ${sale.customer ? sale.customer.name : 'N/A'}</div>`;
+                    html += `<div><strong>Date:</strong> ${sale.sale_date ? new Date(sale.sale_date).toLocaleDateString() : ''}</div>`;
+                    html += `<div><strong>Status:</strong> ${sale.status}</div>`;
+                    html += `<div><strong>Discount:</strong> $${sale.discount || 0}</div>`;
+                    html += `<div><strong>Tax:</strong> $${sale.tax || 0}</div>`;
+                    html += `<div><strong>Notes:</strong> ${sale.notes || ''}</div>`;
+                    html += `<div class='mt-2'><strong>Items:</strong><ul class='list-disc pl-5'>`;
+                    (sale.sale_items || sale.saleItems || []).forEach(item => {
+                        html += `<li>${item.product ? item.product.name : 'Product'} - Qty: ${item.quantity}, Price: $${item.price}, Total: $${item.total}</li>`;
+                    });
+                    html += `</ul></div>`;
+                    html += `<div class='mt-2'><strong>Total:</strong> $${sale.total}</div>`;
+                    document.getElementById('viewSaleContent').innerHTML = html;
+                } else {
+                    document.getElementById('viewSaleContent').innerHTML = 'Error loading sale details.';
+                }
+            })
+            .catch(() => {
+                document.getElementById('viewSaleContent').innerHTML = 'Error loading sale details.';
+            });
+        }
         function closeViewModal() {
             document.getElementById('viewModal').classList.add('hidden');
-            selectedSaleId = null;
         }
 
-        function downloadInvoice(saleId) {
-            fetch(`/downloadInvoice?sale_id=${saleId}`, {
+        // Edit Sale
+        function editSale(id) {
+            editingSaleId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Sale';
+            document.getElementById('saleForm').reset();
+            document.getElementById('saleFormMessage').textContent = '';
+            loadCustomers();
+            loadProductsForSale();
+            // Fetch sale details
+            fetch(`/saleShow?id=${id}`, {
                 headers: {
                     'user_id': '{{ $user->id }}',
                     'email': '{{ $user->email }}',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
                 },
                 credentials: 'same-origin'
-            }).then(response => response.blob())
-              .then(blob => {
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `invoice_${saleId}.pdf`;
-                  document.body.appendChild(a);
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-              });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const sale = data.sale;
+                    document.getElementById('customer_id').value = sale.customer_id;
+                    document.getElementById('sale_date').value = sale.sale_date;
+                    document.getElementById('status').value = sale.status;
+                    document.getElementById('discount').value = sale.discount || '';
+                    document.getElementById('tax').value = sale.tax || '';
+                    document.getElementById('notes').value = sale.notes || '';
+                    saleItems = (sale.sale_items || sale.saleItems || []).map(item => ({
+                        product_id: item.product_id,
+                        quantity: item.quantity,
+                        price: item.price
+                    }));
+                    renderSaleItemsRows();
+                    document.getElementById('saleModal').classList.remove('hidden');
+                } else {
+                    alert('Error loading sale details');
+                }
+            })
+            .catch(() => {
+                alert('Error loading sale details');
+            });
         }
 
-        function previewInvoice(saleId) {
-            fetch(`/previewInvoice?sale_id=${saleId}`, {
+        // Delete Sale
+        function deleteSale(id) {
+            deletingSaleId = id;
+            document.getElementById('deleteSaleMessage').textContent = '';
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            deletingSaleId = null;
+        }
+        function confirmDeleteSale() {
+            if (!deletingSaleId) return;
+            document.getElementById('deleteSaleMessage').textContent = 'Deleting...';
+            fetch('/saleDelete', {
+                method: 'DELETE',
                 headers: {
-                    'user_id': '{{ $user->id }}',
-                    'email': '{{ $user->email }}',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'Content-Type': 'application/json',
                 },
-                credentials: 'same-origin'
-            }).then(response => response.text())
-              .then(html => {
-                  const win = window.open('', '_blank');
-                  win.document.write(html);
-                  win.document.close();
-              });
+                body: JSON.stringify({ id: deletingSaleId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('deleteSaleMessage').textContent = 'Sale deleted!';
+                    setTimeout(() => {
+                        closeDeleteModal();
+                        loadSales(salesCurrentPage);
+                    }, 800);
+                } else {
+                    document.getElementById('deleteSaleMessage').textContent = data.message || 'Error deleting sale.';
+                }
+            })
+            .catch(() => {
+                document.getElementById('deleteSaleMessage').textContent = 'Error deleting sale.';
+            });
         }
     </script>
-</body>
-</html> 
+@endsection 
